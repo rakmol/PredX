@@ -1,0 +1,13 @@
+{
+  "name": "predx",
+  "version": "1.0.0",
+  "description": "PredX — AI-Powered Crypto Prediction Platform",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build"
+  }
+}
