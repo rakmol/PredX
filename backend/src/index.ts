@@ -70,8 +70,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 PredX API running on http://localhost:${PORT}`);
-});
+// Only start HTTP server when running locally (not on Vercel serverless)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 PredX API running on http://localhost:${PORT}`);
+  });
+}
 
 export default app;
