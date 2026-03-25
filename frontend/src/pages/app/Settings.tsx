@@ -19,7 +19,7 @@ import {
   User, Mail, Lock, Monitor, Trash2,
   Bell, Globe, ShieldAlert, Camera, Save,
   X, ChevronRight, Link2,
-  Download, Loader2,
+  Download, Loader2, AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
