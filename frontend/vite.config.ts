@@ -25,8 +25,10 @@ function backendPlugin() {
   }
 }
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), backendPlugin()],
+  plugins: [react(), tailwindcss(), ...(isDev ? [backendPlugin()] : [])],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
