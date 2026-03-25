@@ -34,6 +34,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    target: ['es2020', 'chrome80', 'firefox80', 'safari14'],
+  },
   optimizeDeps: {
     include: ['html2canvas'],
   },
