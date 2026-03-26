@@ -138,7 +138,6 @@ function LandingNav() {
         <div className="hidden items-center gap-6 text-sm text-slate-400 md:flex">
           <a href="#features" className="transition-colors hover:text-slate-200">Features</a>
           <a href="#how-it-works" className="transition-colors hover:text-slate-200">How It Works</a>
-          <a href="#pricing" className="transition-colors hover:text-slate-200">Pricing</a>
           <a href="#connect-exchange" className="flex items-center gap-1.5 font-semibold text-[#F0B90B] transition-opacity hover:opacity-80">
             <Link2 size={13} />
             Connect Binance
@@ -436,87 +435,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="pricing" className="px-6 py-24">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-14 text-center">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-brand">Pricing</p>
-            <h2 className="mb-4 text-3xl font-extrabold text-slate-100 md:text-4xl">
-              Simple, transparent pricing
-            </h2>
-            <p className="text-slate-400">Start free. Upgrade when you're ready.</p>
-          </div>
-
-          <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
-            <div className="rounded-2xl border border-[#1E3050] bg-[#0D1526] p-8">
-              <div className="mb-6">
-                <p className="mb-1 text-sm font-medium text-slate-400">Free</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-4xl font-extrabold text-slate-100">$0</span>
-                  <span className="mb-1 text-slate-500">/month</span>
-                </div>
-                <p className="mt-2 text-sm text-slate-500">No credit card required.</p>
-              </div>
-
-              <ul className="mb-8 space-y-3">
-                {FREE_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2.5 text-sm text-slate-400">
-                    <CheckCircle2 size={15} className="flex-shrink-0 text-slate-600" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                to="/signup"
-                className="block rounded-xl border border-[#1E3050] py-3 text-center text-sm font-semibold text-slate-300 transition-all hover:border-brand/50 hover:bg-white/3 hover:text-slate-100"
-              >
-                Get Started Free
-              </Link>
-            </div>
-
-            <div className="relative rounded-2xl border-2 border-brand bg-[#0D1526] p-8 shadow-2xl shadow-brand/15">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="whitespace-nowrap rounded-full bg-brand px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-brand/40">
-                  Most Popular
-                </span>
-              </div>
-
-              <div className="mb-6">
-                <p className="mb-1 text-sm font-medium text-brand">Pro</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-4xl font-extrabold text-slate-100">GHS 80</span>
-                  <span className="mb-1 text-slate-500">/month</span>
-                </div>
-                <p className="mt-1 text-sm text-slate-500">
-                  or <span className="font-medium text-slate-300">$6 USD/month</span>
-                </p>
-                <p className="mt-2 text-xs text-brand">Pay with Paystack (Ghana) or Stripe (global)</p>
-              </div>
-
-              <ul className="mb-8 space-y-3">
-                {PRO_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2.5 text-sm text-slate-200">
-                    <CheckCircle2 size={15} className="flex-shrink-0 text-green-400" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                to="/signup"
-                className="block rounded-xl bg-brand py-3.5 text-center text-sm font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:bg-brand/90 hover:shadow-brand/40"
-              >
-                Start Pro - GHS 80/mo
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-8 flex items-center justify-center gap-2 text-sm text-slate-500">
-            <Shield size={14} className="text-green-400" />
-            30-day money-back guarantee - Cancel anytime
-          </div>
-        </div>
-      </section>
 
       <section className="relative overflow-hidden px-6 py-20">
         <div className="absolute inset-0 bg-brand/5" />
@@ -567,7 +485,6 @@ export default function LandingPage() {
                   { label: 'AI Predictions', to: '/predict' },
                   { label: 'Advisor', to: '/advisor' },
                   { label: 'Portfolio', to: '/portfolio' },
-                  { label: 'Pricing', to: '#pricing' },
                 ].map(({ label, to }) => (
                   <li key={label}>
                     <Link to={to} className="text-sm text-slate-500 transition-colors hover:text-slate-300">

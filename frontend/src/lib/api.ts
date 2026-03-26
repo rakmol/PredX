@@ -1,10 +1,14 @@
-// API client — all calls go through /api proxy to backend
+// API client — points to backend (uses VITE_API_URL in production, /api proxy in dev)
 
 import axios from 'axios';
 import type { CoinData, CoinHistoryPoint, PredictionResult, InvestmentAdvice, Horizon, Currency } from '../types';
 import type { OHLCVPoint } from './coingecko';
 
-const api = axios.create({ baseURL: '/api' });
+const BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
+
+const api = axios.create({ baseURL: BASE });
 
 function getApiErrorMessage(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
