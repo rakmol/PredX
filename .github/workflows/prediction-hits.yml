@@ -1,0 +1,17 @@
+name: Check Prediction Targets
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # every hour
+  workflow_dispatch:       # allow manual trigger
+
+jobs:
+  check-targets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Move Watch prediction hits
+        run: |
+          curl -s -X POST https://predx-api.vercel.app/api/cron/prediction-hits \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail-with-body
