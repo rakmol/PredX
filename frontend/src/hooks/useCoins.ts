@@ -51,11 +51,11 @@ export function useSearchCoins(query: string) {
 export function useTopCoins(limit = 50) {
   return useQuery({
     queryKey: ['top-coins', limit],
-    queryFn: () => getTopCoins(limit),
+    queryFn: () => marketApi.getTopCoins(limit).catch(() => getTopCoins(limit)),
     staleTime: PRICE_STALE,
     refetchInterval: PRICE_STALE,
-    placeholderData: (prev) => prev, // keep showing old data during background refetch
-    gcTime: 5 * 60_000, // keep in cache for 5 min
+    placeholderData: (prev) => prev,
+    gcTime: 5 * 60_000,
   });
 }
 

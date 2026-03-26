@@ -97,29 +97,6 @@ export async function signIn(email: string, password: string) {
   const profile = await fetchProfile(data.user.id);
   if (!profile) throw new Error('Profile not found. Please contact support.');
 
-  // ── Device limit check ──────────────────────────────────────────────────────
-  const deviceId = getDeviceFingerprint();
-  const devices: string[] = profile.devices ?? [];
-
-  if (!devices.includes(deviceId)) {
-    const maxDevices = profile.subscription_tier === 'pro' ? 2 : 1;
-    if (devices.length >= maxDevices) {
-      // Sign back out to keep session clean
-      await supabase.auth.signOut();
-      const tierLabel = profile.subscription_tier === 'free' ? 'Free (1 device)' : 'Pro (2 devices)';
-      throw new Error(
-        `DEVICE_LIMIT:Device limit reached for your ${tierLabel} plan. Remove a device in Settings to continue.`,
-      );
-    }
-    // Register this device
-    await supabase
-      .from('profiles')
-      .update({ devices: [...devices, deviceId] })
-      .eq('id', data.user.id);
-
-    profile.devices = [...devices, deviceId];
-  }
-
   return { user: data.user, session: data.session, profile };
 }
 
