@@ -5,6 +5,15 @@ import { Router, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 
+interface CoinRow {
+  id: string;
+  symbol: string;
+  name: string;
+  current_price: number;
+  price_change_percentage_24h: number;
+  price_change_percentage_7d_in_currency: number;
+}
+
 const router = Router();
 
 const supabase = createClient(
@@ -20,6 +29,157 @@ function cronAuth(req: Request, res: Response, next: () => void) {
     return;
   }
   next();
+}
+
+/** Send an email via Resend directly */
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) throw new Error('RESEND_API_KEY not configured');
+
+  const fromEmail = process.env.FROM_EMAIL ?? 'PredX <onboarding@resend.dev>';
+
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: fromEmail, to, subject, html }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Resend error: ${err}`);
+  }
+}
+
+/** Build prediction-hit email HTML */
+function buildPredictionHitHtml(params: {
+  coinName: string; coinSymbol: string; horizon: string;
+  direction: string; targetPct: string; actualPct: string;
+  currentPriceUsd: string; currentPriceGhs: string;
+}): string {
+  const { coinName, coinSymbol, horizon, direction, targetPct, actualPct, currentPriceUsd, currentPriceGhs } = params;
+  const dirColor  = direction === 'up' ? '#22C55E' : '#EF4444';
+  const appUrl    = 'https://predx-app.vercel.app';
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#050A14;font-family:'Inter',system-ui,sans-serif;color:#E2E8F0;">
+  <div style="max-width:560px;margin:40px auto;padding:0 16px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:22px;font-weight:800;background:linear-gradient(135deg,#3B82F6,#8B5CF6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">PredX</span>
+      <p style="color:#64748B;font-size:13px;margin:4px 0 0;">AI Crypto Predictions</p>
+    </div>
+    <div style="background:#0D1526;border:1px solid #1E3050;border-radius:16px;padding:28px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <div style="background:${dirColor}20;border-radius:10px;padding:10px;">
+          <span style="font-size:24px;">${direction === 'up' ? '🚀' : '⬇️'}</span>
+        </div>
+        <div>
+          <p style="margin:0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#64748B;">Prediction Target Hit</p>
+          <h2 style="margin:4px 0 0;font-size:20px;font-weight:800;color:#F1F5F9;">${coinName} (${coinSymbol})</h2>
+        </div>
+      </div>
+      <div style="background:#111E35;border-radius:12px;padding:16px;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center;">
+          <div>
+            <p style="margin:0;font-size:11px;color:#64748B;text-transform:uppercase;">Horizon</p>
+            <p style="margin:4px 0 0;font-size:16px;font-weight:700;color:#3B82F6;">${horizon}</p>
+          </div>
+          <div>
+            <p style="margin:0;font-size:11px;color:#64748B;text-transform:uppercase;">Target</p>
+            <p style="margin:4px 0 0;font-size:16px;font-weight:700;color:${dirColor};">${targetPct}</p>
+          </div>
+          <div>
+            <p style="margin:0;font-size:11px;color:#64748B;text-transform:uppercase;">Actual</p>
+            <p style="margin:4px 0 0;font-size:16px;font-weight:700;color:${dirColor};">${actualPct}</p>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+        <div style="background:#111E35;border-radius:10px;padding:14px;">
+          <p style="margin:0;font-size:11px;color:#64748B;">Price (USD)</p>
+          <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#F1F5F9;">${currentPriceUsd}</p>
+        </div>
+        <div style="background:#111E35;border-radius:10px;padding:14px;">
+          <p style="margin:0;font-size:11px;color:#64748B;">Price (GHS)</p>
+          <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#F1F5F9;">${currentPriceGhs}</p>
+        </div>
+      </div>
+      <p style="margin:0;font-size:13px;color:#94A3B8;line-height:1.6;">
+        The PredX Move Watch predicted ${coinName} would move <strong style="color:${dirColor};">${targetPct}</strong> within ${horizon}.
+        The coin has now moved <strong style="color:${dirColor};">${actualPct}</strong> — target reached! ✅
+      </p>
+    </div>
+    <div style="text-align:center;margin-bottom:24px;">
+      <a href="${appUrl}/dashboard" style="display:inline-block;background:#3B82F6;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;font-size:15px;">
+        View Dashboard →
+      </a>
+    </div>
+    <p style="text-align:center;font-size:12px;color:#334155;margin-top:24px;">
+      PredX · AI Crypto Predictions · <a href="${appUrl}/settings" style="color:#475569;">Unsubscribe</a>
+    </p>
+  </div>
+</body>
+</html>`;
+}
+
+/** Build coin-update email HTML */
+function buildCoinUpdateHtml(params: {
+  coinName: string; coinSymbol: string; direction: string;
+  changeValue: string; currentPriceUsd: string; currentPriceGhs: string;
+}): string {
+  const { coinName, coinSymbol, direction, changeValue, currentPriceUsd, currentPriceGhs } = params;
+  const dirColor = direction === 'up' ? '#22C55E' : '#EF4444';
+  const appUrl   = 'https://predx-app.vercel.app';
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#050A14;font-family:'Inter',system-ui,sans-serif;color:#E2E8F0;">
+  <div style="max-width:560px;margin:40px auto;padding:0 16px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:22px;font-weight:800;background:linear-gradient(135deg,#3B82F6,#8B5CF6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">PredX</span>
+      <p style="color:#64748B;font-size:13px;margin:4px 0 0;">AI Crypto Predictions</p>
+    </div>
+    <div style="background:#0D1526;border:1px solid #1E3050;border-radius:16px;padding:28px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <div style="background:${dirColor}20;border-radius:10px;padding:10px;">
+          <span style="font-size:24px;">${direction === 'up' ? '📈' : '📉'}</span>
+        </div>
+        <div>
+          <p style="margin:0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#64748B;">Major Price Move</p>
+          <h2 style="margin:4px 0 0;font-size:20px;font-weight:800;color:#F1F5F9;">${coinName} (${coinSymbol})</h2>
+        </div>
+      </div>
+      <div style="background:#111E35;border-radius:12px;padding:20px;margin-bottom:20px;text-align:center;">
+        <p style="margin:0;font-size:13px;color:#64748B;text-transform:uppercase;letter-spacing:1px;">24h Change</p>
+        <p style="margin:8px 0 0;font-size:36px;font-weight:800;color:${dirColor};">${changeValue}</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:#111E35;border-radius:10px;padding:14px;">
+          <p style="margin:0;font-size:11px;color:#64748B;">Price (USD)</p>
+          <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#F1F5F9;">${currentPriceUsd}</p>
+        </div>
+        <div style="background:#111E35;border-radius:10px;padding:14px;">
+          <p style="margin:0;font-size:11px;color:#64748B;">Price (GHS)</p>
+          <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#F1F5F9;">${currentPriceGhs}</p>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-bottom:24px;">
+      <a href="${appUrl}/dashboard" style="display:inline-block;background:#3B82F6;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;font-size:15px;">
+        View Dashboard →
+      </a>
+    </div>
+    <p style="text-align:center;font-size:12px;color:#334155;margin-top:24px;">
+      PredX · AI Crypto Predictions · <a href="${appUrl}/settings" style="color:#475569;">Unsubscribe</a>
+    </p>
+  </div>
+</body>
+</html>`;
 }
 
 // POST /api/cron/coin-updates
@@ -68,40 +228,33 @@ router.post('/coin-updates', cronAuth, async (_req: Request, res: Response) => {
       return;
     }
 
-    // 5. Send emails — one email per user with all movers batched
-    const supabaseUrl = process.env.SUPABASE_URL!;
-    const fnUrl = `${supabaseUrl}/functions/v1/send-coin-update`;
-    let sent = 0;
+    // 5. Send emails directly via Resend
+    const top = movers.sort((a, b) =>
+      Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h)
+    )[0];
+    const pct = top.price_change_percentage_24h;
+    const direction = pct >= 0 ? 'up' : 'down';
+    const changeValue = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+    const html = buildCoinUpdateHtml({
+      coinName: top.name,
+      coinSymbol: top.symbol.toUpperCase(),
+      direction,
+      changeValue,
+      currentPriceUsd: `$${top.current_price.toLocaleString()}`,
+      currentPriceGhs: `GHS ${(top.current_price * ghsRate).toLocaleString('en-GH', { maximumFractionDigits: 2 })}`,
+    });
 
+    let sent = 0;
     for (const profile of profiles) {
       if (!profile.email) continue;
-
-      // Only send for the biggest mover to avoid email spam
-      const top = movers.sort((a, b) =>
-        Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h)
-      )[0];
-
-      const pct = top.price_change_percentage_24h;
-      const direction = pct >= 0 ? 'up' : 'down';
-
-      await fetch(fnUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: profile.email,
-          coinSymbol: top.symbol.toUpperCase(),
-          coinName: top.name,
-          changeType: 'major_move',
-          changeValue: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`,
-          currentPriceUsd: `$${top.current_price.toLocaleString()}`,
-          currentPriceGhs: `GHS ${(top.current_price * ghsRate).toLocaleString('en-GH', { maximumFractionDigits: 2 })}`,
-          direction,
-        }),
-      });
-      sent++;
+      try {
+        await sendEmail(
+          profile.email,
+          `${top.symbol.toUpperCase()} moved ${changeValue} in 24h`,
+          html
+        );
+        sent++;
+      } catch { /* skip failed sends */ }
     }
 
     res.json({ sent, movers: movers.map((m) => m.symbol), profiles: profiles.length });
@@ -127,13 +280,6 @@ router.post('/prediction-hits', cronAuth, async (_req: Request, res: Response) =
       },
       timeout: 15_000,
     });
-
-    type CoinRow = {
-      id: string; symbol: string; name: string;
-      current_price: number;
-      price_change_percentage_24h: number;
-      price_change_percentage_7d_in_currency: number;
-    };
 
     // 2. Build Move Watch targets (same logic as frontend) and check if hit
     const hitsFound: Array<{
@@ -179,7 +325,7 @@ router.post('/prediction-hits', cronAuth, async (_req: Request, res: Response) =
       return;
     }
 
-    // 5. Broadcast — send top hit to every user (deduplicate by coin+horizon)
+    // 5. Deduplicate hits by coin+horizon
     const seen = new Set<string>();
     const uniqueHits = hitsFound.filter(h => {
       const key = `${h.coin.id}-${h.horizon}`;
@@ -188,33 +334,33 @@ router.post('/prediction-hits', cronAuth, async (_req: Request, res: Response) =
       return true;
     });
 
-    const fnUrl = `${process.env.SUPABASE_URL}/functions/v1/send-prediction-hit`;
+    // 6. Broadcast — send emails directly via Resend
     let sent = 0;
-
     for (const profile of profiles) {
       if (!profile.email) continue;
       for (const hit of uniqueHits) {
         const direction = hit.coin.price_change_percentage_24h >= 0 ? 'up' : 'down';
         const sign = direction === 'up' ? '+' : '-';
-        await fetch(fnUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: profile.email,
-            coinName: hit.coin.name,
-            coinSymbol: hit.coin.symbol.toUpperCase(),
-            horizon: hit.horizon,
-            direction,
-            targetPct: `${sign}${hit.targetPct.toFixed(1)}%`,
-            actualPct: `${sign}${hit.actualPct.toFixed(1)}%`,
-            currentPriceUsd: `$${hit.coin.current_price.toLocaleString()}`,
-            currentPriceGhs: `GHS ${(hit.coin.current_price * ghsRate).toLocaleString('en-GH', { maximumFractionDigits: 2 })}`,
-          }),
+        const targetPct = `${sign}${hit.targetPct.toFixed(1)}%`;
+        const actualPct = `${sign}${hit.actualPct.toFixed(1)}%`;
+        const html = buildPredictionHitHtml({
+          coinName: hit.coin.name,
+          coinSymbol: hit.coin.symbol.toUpperCase(),
+          horizon: hit.horizon,
+          direction,
+          targetPct,
+          actualPct,
+          currentPriceUsd: `$${hit.coin.current_price.toLocaleString()}`,
+          currentPriceGhs: `GHS ${(hit.coin.current_price * ghsRate).toLocaleString('en-GH', { maximumFractionDigits: 2 })}`,
         });
-        sent++;
+        try {
+          await sendEmail(
+            profile.email,
+            `🎯 ${hit.coin.symbol.toUpperCase()} hit its ${hit.horizon} target! ${actualPct}`,
+            html
+          );
+          sent++;
+        } catch { /* skip failed sends */ }
       }
     }
 
