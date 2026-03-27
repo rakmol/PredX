@@ -179,6 +179,93 @@ function MoveWatchCard({ coin }: { coin: MoveWatchItem }) {
   );
 }
 
+/* ─── Futures Signal Card (with contract address) ──────────────────────────── */
+
+function FuturesSignalCard({ coin }: { coin: DashFutures }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const { data: platforms } = useCoinPlatforms(coin.id);
+  const primary = platforms?.[0] ?? null;
+  const isLong = coin.direction === 'long';
+  const dirColor = isLong ? 'text-emerald-400' : 'text-red-400';
+  const dirBg = isLong ? 'border-emerald-500/25 bg-emerald-500/8' : 'border-red-500/25 bg-red-500/8';
+  const DirIcon = isLong ? TrendingUp : TrendingDown;
+  const strengthDot = coin.signal_strength === 'strong' ? 'bg-emerald-400' : coin.signal_strength === 'moderate' ? 'bg-amber-400' : 'bg-slate-500';
+
+  const copyAddr = (e: React.MouseEvent, addr: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(addr).then(() => {
+      setCopied(addr);
+      setTimeout(() => setCopied(null), 1500);
+    });
+  };
+
+  return (
+    <Link
+      to={`/coin/${coin.id}`}
+      className="rounded-2xl border border-[#1E3050] bg-[#0D1526] p-4 transition-all hover:border-purple-500/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.06)]"
+    >
+      {/* Coin header */}
+      <div className="flex items-center gap-2 mb-3">
+        <img src={coin.image} alt={coin.name} className="h-7 w-7 rounded-full border border-white/10" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-100">{coin.name}</p>
+          <p className="text-[10px] uppercase tracking-wide text-slate-500">{coin.symbol}</p>
+        </div>
+      </div>
+
+      {/* Direction badge */}
+      <div className={`flex items-center justify-between rounded-xl border px-3 py-2 ${dirBg}`}>
+        <div className="flex items-center gap-1.5">
+          <DirIcon size={13} className={dirColor} />
+          <span className={`text-sm font-extrabold ${dirColor}`}>
+            {coin.direction.toUpperCase()} {coin.leverage}×
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className={`h-1.5 w-1.5 rounded-full ${strengthDot}`} />
+          <span className="text-[10px] text-slate-500 capitalize">{coin.signal_strength}</span>
+        </div>
+      </div>
+
+      {/* Confidence bar */}
+      <div className="mt-3">
+        <div className="mb-1 flex items-center justify-between text-[10px] text-slate-500">
+          <span>Confidence</span>
+          <span>{coin.confidence}%</span>
+        </div>
+        <div className="h-1 rounded-full bg-[#1A2940] overflow-hidden">
+          <div
+            className={`h-full rounded-full ${isLong ? 'bg-emerald-400' : 'bg-red-400'}`}
+            style={{ width: `${coin.confidence}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Contract address row */}
+      {primary && (
+        <div className="mt-3 flex items-center gap-1.5">
+          <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold text-blue-300">
+            {primary.networkLabel}
+          </span>
+          <span className="flex-1 truncate font-mono text-[10px] text-slate-500">
+            {primary.address.slice(0, 8)}...{primary.address.slice(-5)}
+          </span>
+          <button
+            onClick={(e) => copyAddr(e, primary.address)}
+            className="rounded p-1 text-slate-600 transition-colors hover:text-slate-300"
+            title="Copy contract address"
+          >
+            {copied === primary.address
+              ? <Check size={11} className="text-emerald-400" />
+              : <Copy size={11} />}
+          </button>
+        </div>
+      )}
+    </Link>
+  );
+}
+
 /* ─── Dashboard Futures Signals ────────────────────────────────────────────── */
 
 type DashFutures = {
@@ -597,64 +684,16 @@ export default function Dashboard() {
 
         <div className="grid gap-3 lg:grid-cols-5">
           {coinsLoading
-            ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28" />)
+            ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-36" />)
             : dashFutures.length === 0
             ? (
               <div className="col-span-5 rounded-2xl border border-[#1E3050] bg-[#0D1526] p-6 text-center text-sm text-slate-500">
                 No strong futures setups right now. Check back when the market shows clearer direction.
               </div>
             )
-            : dashFutures.map((coin) => {
-              const isLong = coin.direction === 'long';
-              const dirColor = isLong ? 'text-emerald-400' : 'text-red-400';
-              const dirBg = isLong ? 'border-emerald-500/25 bg-emerald-500/8' : 'border-red-500/25 bg-red-500/8';
-              const DirIcon = isLong ? TrendingUp : TrendingDown;
-              const strengthDot = coin.signal_strength === 'strong' ? 'bg-emerald-400' : coin.signal_strength === 'moderate' ? 'bg-amber-400' : 'bg-slate-500';
-              return (
-                <Link
-                  key={coin.id}
-                  to={`/coin/${coin.id}`}
-                  className="rounded-2xl border border-[#1E3050] bg-[#0D1526] p-4 transition-all hover:border-purple-500/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.06)]"
-                >
-                  {/* Coin header */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <img src={coin.image} alt={coin.name} className="h-7 w-7 rounded-full border border-white/10" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-100">{coin.name}</p>
-                      <p className="text-[10px] uppercase tracking-wide text-slate-500">{coin.symbol}</p>
-                    </div>
-                  </div>
-
-                  {/* Direction badge */}
-                  <div className={`flex items-center justify-between rounded-xl border px-3 py-2 ${dirBg}`}>
-                    <div className="flex items-center gap-1.5">
-                      <DirIcon size={13} className={dirColor} />
-                      <span className={`text-sm font-extrabold ${dirColor}`}>
-                        {coin.direction.toUpperCase()} {coin.leverage}×
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className={`h-1.5 w-1.5 rounded-full ${strengthDot}`} />
-                      <span className="text-[10px] text-slate-500 capitalize">{coin.signal_strength}</span>
-                    </div>
-                  </div>
-
-                  {/* Confidence bar */}
-                  <div className="mt-3">
-                    <div className="mb-1 flex items-center justify-between text-[10px] text-slate-500">
-                      <span>Confidence</span>
-                      <span>{coin.confidence}%</span>
-                    </div>
-                    <div className="h-1 rounded-full bg-[#1A2940] overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${isLong ? 'bg-emerald-400' : 'bg-red-400'}`}
-                        style={{ width: `${coin.confidence}%` }}
-                      />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            : dashFutures.map((coin) => (
+                <FuturesSignalCard key={coin.id} coin={coin} />
+              ))}
         </div>
       </div>
 
