@@ -93,14 +93,6 @@ export const predictionApi = {
       }),
 };
 
-// Affiliate
-export const affiliateApi = {
-  getStats: () =>
-    api.get<{ refCode: string | null; referralCount: number }>('/affiliate/stats').then(r => r.data),
-  recordReferral: (referredId: string, refCode: string) =>
-    api.post<{ recorded: boolean }>('/affiliate/record', { referredId, refCode }).then(r => r.data),
-};
-
 // Alerts
 export const alertsApi = {
   getAlerts: () => api.get('/alerts').then(r => r.data),
