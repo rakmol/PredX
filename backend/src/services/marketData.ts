@@ -245,6 +245,137 @@ export async function searchByContractAddress(
   return [];
 }
 
+/** Network label map for display */
+const NETWORK_LABELS: Record<string, string> = {
+  'ethereum': 'ETH',
+  'binance-smart-chain': 'BSC',
+  'solana': 'SOL',
+  'polygon-pos': 'MATIC',
+  'avalanche': 'AVAX',
+  'tron': 'TRX',
+  'arbitrum-one': 'ARB',
+  'optimistic-ethereum': 'OP',
+  'base': 'BASE',
+  'fantom': 'FTM',
+  'near-protocol': 'NEAR',
+  'cardano': 'ADA',
+  'cosmos': 'ATOM',
+  'xrp': 'XRP',
+  'stellar': 'XLM',
+  'algorand': 'ALGO',
+  'hedera-hashgraph': 'HBAR',
+  'aptos': 'APT',
+  'sui': 'SUI',
+};
+
+export interface CoinPlatform {
+  network: string;
+  networkLabel: string;
+  address: string;
+}
+
+/** Fetch contract addresses for a specific coin */
+export async function getCoinPlatforms(coinId: string): Promise<CoinPlatform[]> {
+  const key = `platforms_${coinId}`;
+  const cached = getCached<CoinPlatform[]>(key);
+  if (cached) return cached;
+
+  const data = await cgGet<{ platforms: Record<string, string> }>(
+    `${COINGECKO_BASE}/coins/${coinId}`,
+    { localization: false, tickers: false, market_data: false, community_data: false, developer_data: false }
+  );
+
+  const platforms: CoinPlatform[] = Object.entries(data.platforms ?? {})
+    .filter(([, addr]) => addr && addr.length > 0)
+    .map(([network, address]) => ({
+      network,
+      networkLabel: NETWORK_LABELS[network] ?? network.toUpperCase().slice(0, 5),
+      address,
+    }));
+
+  setCache(key, platforms, 30 * 60_000); // 30 min cache
+  return platforms;
+}
+
+/** Verify a coin by name or contract address — returns verification result */
+export async function verifyCoin(query: string): Promise<{
+  found: boolean;
+  id?: string;
+  name?: string;
+  symbol?: string;
+  image?: string;
+  marketCapRank?: number | null;
+  platforms?: CoinPlatform[];
+}> {
+  const trimmed = query.trim();
+  if (!trimmed) return { found: false };
+
+  // If it's a contract address — search by address
+  const isAddress = /^0x[0-9a-fA-F]{40}$/.test(trimmed) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmed);
+
+  if (isAddress) {
+    const PLATFORMS_TO_TRY = isAddress && trimmed.startsWith('0x')
+      ? ['ethereum', 'binance-smart-chain', 'polygon-pos', 'arbitrum-one', 'base', 'optimistic-ethereum', 'avalanche']
+      : ['solana'];
+
+    for (const platform of PLATFORMS_TO_TRY) {
+      try {
+        const data = await cgGet<{
+          id: string; symbol: string; name: string;
+          image: { thumb: string; small: string };
+          market_cap_rank: number | null;
+          platforms: Record<string, string>;
+        }>(`${COINGECKO_BASE}/coins/${platform}/contract/${trimmed.toLowerCase()}`, {
+          localization: false, tickers: false, community_data: false, developer_data: false,
+        });
+
+        const platforms: CoinPlatform[] = Object.entries(data.platforms ?? {})
+          .filter(([, addr]) => addr && addr.length > 0)
+          .map(([net, addr]) => ({
+            network: net,
+            networkLabel: NETWORK_LABELS[net] ?? net.toUpperCase().slice(0, 5),
+            address: addr,
+          }));
+
+        return {
+          found: true,
+          id: data.id,
+          name: data.name,
+          symbol: data.symbol.toUpperCase(),
+          image: data.image?.small ?? data.image?.thumb ?? '',
+          marketCapRank: data.market_cap_rank,
+          platforms,
+        };
+      } catch { /* try next */ }
+    }
+    return { found: false };
+  }
+
+  // Search by name
+  try {
+    const searchData = await cgGet<{ coins: Array<{ id: string; symbol: string; name: string; thumb: string; market_cap_rank: number | null }> }>(
+      `${COINGECKO_BASE}/search`, { query: trimmed }
+    );
+    const top = searchData.coins[0];
+    if (!top) return { found: false };
+
+    // Get platforms for the top result
+    const platforms = await getCoinPlatforms(top.id).catch(() => []);
+
+    return {
+      found: true,
+      id: top.id,
+      name: top.name,
+      symbol: top.symbol.toUpperCase(),
+      image: top.thumb,
+      marketCapRank: top.market_cap_rank,
+      platforms,
+    };
+  } catch {
+    return { found: false };
+  }
+}
+
 export async function getGHSRate(): Promise<number> {
   const key = 'ghs_rate';
   const cached = getCached<number>(key);

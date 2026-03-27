@@ -2,7 +2,7 @@
 // Public endpoints for coin prices, charts, search
 
 import { Router, Request, Response } from 'express';
-import { getTopCoins, getCoinDetails, getCoinPriceHistory, getOHLCV, searchCoins, getFearGreedIndex, getGHSRate } from '../services/marketData';
+import { getTopCoins, getCoinDetails, getCoinPriceHistory, getOHLCV, searchCoins, getFearGreedIndex, getGHSRate, getCoinPlatforms, verifyCoin } from '../services/marketData';
 
 const router = Router();
 
@@ -78,6 +78,33 @@ router.get('/fear-greed', async (_req: Request, res: Response) => {
   try {
     const data = await getFearGreedIndex();
     res.json(data);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// GET /api/market/platforms/:coinId
+router.get('/platforms/:coinId', async (req: Request, res: Response) => {
+  try {
+    const platforms = await getCoinPlatforms(req.params['coinId'] as string);
+    res.json(platforms);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// GET /api/market/verify-coin?q=...
+router.get('/verify-coin', async (req: Request, res: Response) => {
+  try {
+    const query = (req.query.q as string) || '';
+    if (!query.trim()) {
+      res.status(400).json({ error: 'Query is required' });
+      return;
+    }
+    const result = await verifyCoin(query);
+    res.json(result);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(500).json({ error: message });

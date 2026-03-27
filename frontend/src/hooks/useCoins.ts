@@ -142,6 +142,19 @@ export function useOHLCV(coinId: string, days: number) {
   });
 }
 
+// ─── Coin Platforms (contract addresses per network) ─────────────────────────
+
+export function useCoinPlatforms(coinId: string) {
+  return useQuery({
+    queryKey: ['coin-platforms', coinId],
+    queryFn: () => marketApi.getCoinPlatforms(coinId),
+    enabled: !!coinId,
+    staleTime: 30 * 60_000,  // 30 min — addresses rarely change
+    gcTime: 60 * 60_000,
+    retry: 1,
+  });
+}
+
 // ─── Fear & Greed (kept for backward compat — now proxied via backend) ────────
 
 export { useFearGreed } from './useFearGreed';

@@ -19,6 +19,7 @@ import {
   Lock,
 } from 'lucide-react';
 import PhoneMockup from '@/components/landing/PhoneMockup';
+import CoinVerifier from '@/components/CoinVerifier';
 
 const STATS = [
   { value: '10,000+', label: 'Predictions Made' },
@@ -435,6 +436,24 @@ export default function LandingPage() {
         </div>
       </section>
 
+
+      {/* ── Coin Verifier Section ── */}
+      <section className="px-6 py-16">
+        <div className="mx-auto max-w-2xl">
+          <div className="mb-8 text-center">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-emerald-400">Free Tool</p>
+            <h2 className="mb-3 text-2xl font-extrabold text-slate-100 md:text-3xl">
+              Is That Coin Real?
+            </h2>
+            <p className="text-sm text-slate-400">
+              Search any coin by name or paste a contract address to verify it's a legitimate token — not a scam or fake clone.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#1E3050] bg-[#0D1526] p-6">
+            <CoinVerifier compact />
+          </div>
+        </div>
+      </section>
 
       <section className="relative overflow-hidden px-6 py-20">
         <div className="absolute inset-0 bg-brand/5" />

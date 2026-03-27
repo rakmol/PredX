@@ -48,7 +48,29 @@ export const marketApi = {
 
   getGhsRate: () =>
     api.get<{ rate: number }>('/market/ghs-rate').then(r => r.data.rate),
+
+  getCoinPlatforms: (coinId: string) =>
+    api.get<CoinPlatform[]>(`/market/platforms/${coinId}`).then(r => r.data),
+
+  verifyCoin: (q: string) =>
+    api.get<VerifyCoinResult>('/market/verify-coin', { params: { q } }).then(r => r.data),
 };
+
+export interface CoinPlatform {
+  network: string;
+  networkLabel: string;
+  address: string;
+}
+
+export interface VerifyCoinResult {
+  found: boolean;
+  id?: string;
+  name?: string;
+  symbol?: string;
+  image?: string;
+  marketCapRank?: number | null;
+  platforms?: CoinPlatform[];
+}
 
 // Predictions
 export const predictionApi = {

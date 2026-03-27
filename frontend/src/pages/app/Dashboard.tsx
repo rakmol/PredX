@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Search, X, Star, Flame,
   Brain, Eye, Clock, Target, TrendingUp, TrendingDown, Minus,
-  Link2, Shield, ChevronRight,
+  Link2, Shield, ChevronRight, Copy, Check, ShieldCheck,
 } from 'lucide-react';
 import {
   useTopCoins,
@@ -13,10 +13,12 @@ import {
   useTrendingCoins,
   useFearGreed,
   useGlobalMarket,
+  useCoinPlatforms,
 } from '@/hooks/useCoins';
 import { getRecentPredictions } from '@/lib/recentPredictions';
 import { useAuth } from '@/hooks/useAuth';
 import SparklineChart from '@/components/charts/SparklineChart';
+import CoinVerifier from '@/components/CoinVerifier';
 import { formatPrice, formatGHS, formatPct, formatLargeNumber, signalBg, signalLabel, timeAgo } from '@/lib/utils';
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
@@ -97,6 +99,84 @@ function buildMoveWatch(
     })
     .sort((a, b) => b.targetPct - a.targetPct)
     .slice(0, 5);
+}
+
+/* ─── Move Watch Card (with contract address) ──────────────────────────────── */
+
+function MoveWatchCard({ coin }: { coin: MoveWatchItem }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const { data: platforms } = useCoinPlatforms(coin.id);
+
+  const primary = platforms?.[0] ?? null;
+
+  const copyAddr = (e: React.MouseEvent, addr: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(addr).then(() => {
+      setCopied(addr);
+      setTimeout(() => setCopied(null), 1500);
+    });
+  };
+
+  return (
+    <Link
+      to={`/coin/${coin.id}`}
+      className="rounded-2xl border border-[#1E3050] bg-[#0D1526] p-4 transition-all hover:border-cyan-500/30 hover:shadow-[0_0_20px_rgba(34,211,238,0.06)]"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <img src={coin.image} alt={coin.name} className="h-9 w-9 rounded-full border border-white/10" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-100">{coin.name}</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">{coin.symbol}</p>
+          </div>
+        </div>
+        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${signalBg(coin.overallSignal)}`}>
+          {signalLabel(coin.overallSignal)}
+        </span>
+      </div>
+
+      <div className="mt-4">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Predicted Price</p>
+        <p className="mt-1 text-xl font-bold text-slate-50">
+          {formatPrice(coin.targetPrice, 'USD', true)}
+        </p>
+        <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-emerald-300">
+          <TrendingUp size={14} />
+          {formatPct(coin.targetPct)} in {coin.forecastHours}h
+        </p>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-[#223556] bg-[#101B30] px-3 py-2">
+        <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Current Price</p>
+        <p className="mt-1 font-mono text-sm text-slate-100">{formatPrice(coin.currentPrice, 'USD', true)}</p>
+        <p className="text-xs text-slate-400">{coin.confidence}% confidence</p>
+      </div>
+
+      {/* Contract address row */}
+      {primary && (
+        <div className="mt-3 flex items-center gap-1.5">
+          <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold text-blue-300">
+            {primary.networkLabel}
+          </span>
+          <span className="flex-1 truncate font-mono text-[10px] text-slate-500">
+            {primary.address.slice(0, 8)}...{primary.address.slice(-5)}
+          </span>
+          <button
+            onClick={(e) => copyAddr(e, primary.address)}
+            className="rounded p-1 text-slate-600 transition-colors hover:text-slate-300"
+            title="Copy contract address"
+          >
+            {copied === primary.address
+              ? <Check size={11} className="text-emerald-400" />
+              : <Copy size={11} />}
+          </button>
+        </div>
+      )}
+
+      <p className="mt-2 text-xs leading-5 text-slate-400">{coin.reason}</p>
+    </Link>
+  );
 }
 
 /* ─── Dashboard Futures Signals ────────────────────────────────────────────── */
@@ -493,46 +573,10 @@ export default function Dashboard() {
         <div className="grid gap-3 lg:grid-cols-5">
           {coinsLoading
             ? Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-40" />
+                <Skeleton key={i} className="h-44" />
               ))
             : moveWatch.map((coin) => (
-                <Link
-                  key={coin.id}
-                  to={`/coin/${coin.id}`}
-                  className="rounded-2xl border border-[#1E3050] bg-[#0D1526] p-4 transition-all hover:border-cyan-500/30 hover:shadow-[0_0_20px_rgba(34,211,238,0.06)]"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <img src={coin.image} alt={coin.name} className="h-9 w-9 rounded-full border border-white/10" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-100">{coin.name}</p>
-                        <p className="text-xs uppercase tracking-wide text-slate-500">{coin.symbol}</p>
-                      </div>
-                    </div>
-                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${signalBg(coin.overallSignal)}`}>
-                      {signalLabel(coin.overallSignal)}
-                    </span>
-                  </div>
-
-                  <div className="mt-4">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Predicted Price</p>
-                    <p className="mt-1 text-xl font-bold text-slate-50">
-                      {formatPrice(coin.targetPrice, 'USD', true)}
-                    </p>
-                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-emerald-300">
-                      <TrendingUp size={14} />
-                      {formatPct(coin.targetPct)} in {coin.forecastHours}h
-                    </p>
-                  </div>
-
-                  <div className="mt-3 rounded-xl border border-[#223556] bg-[#101B30] px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Current Price</p>
-                    <p className="mt-1 font-mono text-sm text-slate-100">{formatPrice(coin.currentPrice, 'USD', true)}</p>
-                    <p className="text-xs text-slate-400">{coin.confidence}% confidence</p>
-                  </div>
-
-                  <p className="mt-3 text-xs leading-5 text-slate-400">{coin.reason}</p>
-                </Link>
+                <MoveWatchCard key={coin.id} coin={coin} />
               ))}
         </div>
       </div>
@@ -890,6 +934,13 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* ═══════════════════════════════════════
+          COIN VERIFIER
+      ═══════════════════════════════════════ */}
+      <div className="rounded-2xl border border-[#1E3050] bg-[#0D1526] p-5">
+        <CoinVerifier />
       </div>
 
       {/* Live indicator */}
