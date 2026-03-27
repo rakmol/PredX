@@ -4,6 +4,7 @@
 import { Router, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
+import nodemailer from 'nodemailer';
 
 interface CoinRow {
   id: string;
@@ -31,26 +32,23 @@ function cronAuth(req: Request, res: Response, next: () => void) {
   next();
 }
 
-/** Send an email via Resend directly */
+/** Send an email via Gmail SMTP */
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  if (!resendApiKey) throw new Error('RESEND_API_KEY not configured');
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASS;
+  if (!gmailUser || !gmailPass) throw new Error('GMAIL_USER or GMAIL_APP_PASS not configured');
 
-  const fromEmail = process.env.FROM_EMAIL ?? 'PredX <onboarding@resend.dev>';
-
-  const resp = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: fromEmail, to, subject, html }),
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: gmailUser, pass: gmailPass },
   });
 
-  if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error(`Resend error: ${err}`);
-  }
+  await transporter.sendMail({
+    from: `PredX <${gmailUser}>`,
+    to,
+    subject,
+    html,
+  });
 }
 
 /** Build prediction-hit email HTML */
