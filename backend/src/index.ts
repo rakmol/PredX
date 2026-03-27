@@ -13,6 +13,7 @@ import predictionsRouter from './routes/predictions';
 import alertsRouter from './routes/alerts';
 import adminRouter from './routes/admin';
 import cronRouter from './routes/cron';
+import affiliateRouter from './routes/affiliate';
 
 dotenv.config();
 
@@ -53,6 +54,7 @@ app.use('/api/predictions', predictionsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/admin', adminRouter);
 app.use('/api/cron', cronRouter);
+app.use('/api/affiliate', affiliateRouter);
 
 // Health check
 app.get('/health', (_req, res) => {

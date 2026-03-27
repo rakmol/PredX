@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { TrendingUp, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { signUp } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
+import { affiliateApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 function validateUsername(v: string): string {
@@ -16,6 +17,12 @@ function validateUsername(v: string): string {
 export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const refCode = (() => {
+    const fromUrl = searchParams.get('ref');
+    if (fromUrl) { localStorage.setItem('predx_ref_code', fromUrl); return fromUrl; }
+    return localStorage.getItem('predx_ref_code') ?? '';
+  })();
 
   const [form, setForm] = useState({ email: '', username: '', password: '', confirm: '' });
   const [showPw, setShowPw] = useState(false);
@@ -40,12 +47,18 @@ export default function Register() {
     setLoading(true);
     try {
       const { profile, session } = await signUp(form.email, form.password, form.username);
+
+      // Record referral if a ref code was present
+      if (profile?.id && refCode) {
+        affiliateApi.recordReferral(profile.id, refCode).catch(() => {/* silent */});
+        localStorage.removeItem('predx_ref_code');
+      }
+
       if (session) {
         login(profile!, session.access_token);
         toast.success('Account created! Welcome to PredX.');
         navigate('/dashboard');
       } else {
-        // Supabase email confirmation required
         toast.success('Check your email to confirm your account.', { duration: 6000 });
         navigate('/login');
       }

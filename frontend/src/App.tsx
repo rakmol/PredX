@@ -23,6 +23,7 @@ import Alerts from '@/pages/app/Alerts';
 import Pricing from '@/pages/Pricing';
 import Upgrade from '@/pages/app/Upgrade';
 import Settings from '@/pages/app/Settings';
+import Affiliate from '@/pages/app/Affiliate';
 import CoinPage from '@/pages/CoinPage';
 import LandingPage from '@/pages/landing/LandingPage';
 
@@ -58,6 +59,7 @@ function Layout() {
           <Route path="/alerts"         element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
           <Route path="/upgrade"        element={<ProtectedRoute><Upgrade /></ProtectedRoute>} />
           <Route path="/settings"       element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/affiliate"      element={<ProtectedRoute><Affiliate /></ProtectedRoute>} />
         </Routes>
       </main>
     </div>

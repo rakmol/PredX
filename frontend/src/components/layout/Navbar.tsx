@@ -3,7 +3,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   TrendingUp, Bell, BarChart2, Brain, Search, X, LogOut,
-  LayoutDashboard, ChevronDown, User, Settings,
+  LayoutDashboard, ChevronDown, User, Settings, Gift,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -255,6 +255,13 @@ export default function Navbar() {
                       >
                         <User size={14} className="text-slate-500" />
                         Profile
+                      </Link>
+                      <Link
+                        to="/affiliate"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-slate-100"
+                      >
+                        <Gift size={14} className="text-brand" />
+                        Affiliate
                       </Link>
                       <Link
                         to="/settings"
